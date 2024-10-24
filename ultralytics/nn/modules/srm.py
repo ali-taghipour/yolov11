@@ -12,8 +12,8 @@ __all__ = (
 )
 
 
-
-SRM_npy = np.load('SRM_Kernels.npy')
+cwd = os.getcwd()  # Get the current working directory (cwd)
+SRM_npy = np.load(cwd+'/ultralytics/nn/modules/SRM_Kernels.npy')
 
 class SRM_conv2d(nn.Module):
     def __init__(self, stride=1, padding=0):
