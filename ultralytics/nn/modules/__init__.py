@@ -86,7 +86,13 @@ from .transformer import (
     TransformerLayer,
 )
 
+from .srm import ( 
+    SRM_conv2d
+ )
+
+
 __all__ = (
+    "SRM_conv2d",
     "Conv",
     "Conv2",
     "LightConv",
