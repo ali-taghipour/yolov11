@@ -55,6 +55,7 @@ from ultralytics.utils.torch_utils import (
 )
 
 
+
 class BaseTrainer:
     """
     A base class for creating trainers.
@@ -104,6 +105,7 @@ class BaseTrainer:
         self.validator = None
         self.metrics = None
         self.plots = {}
+    
         init_seeds(self.args.seed + 1 + RANK, deterministic=self.args.deterministic)
 
         # Dirs
@@ -166,7 +168,7 @@ class BaseTrainer:
         """Run all existing callbacks associated with a particular event."""
         for callback in self.callbacks.get(event, []):
             callback(self)
-
+    
     def train(self):
         """Allow device='', device=None on Multi-GPU systems to default to device=0."""
         if isinstance(self.args.device, str) and len(self.args.device):  # i.e. device='0' or device='0,1,2,3'
@@ -612,6 +614,7 @@ class BaseTrainer:
         raise NotImplementedError("get_validator function not implemented in trainer")
 
     def get_dataloader(self, dataset_path, batch_size=16, rank=0, mode="train"):
+        print("Ali Taghipour456")
         """Returns dataloader derived from torch.data.Dataloader."""
         raise NotImplementedError("get_dataloader function not implemented in trainer")
 

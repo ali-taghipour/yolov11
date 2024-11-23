@@ -55,6 +55,7 @@ class BaseTransform:
         pass
 
     def apply_image(self, labels):
+        
         """
         Applies image transformations to labels.
 

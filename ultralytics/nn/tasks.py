@@ -89,6 +89,8 @@ try:
 except ImportError:
     thop = None
 
+from ultralytics.data.filter.SRM_fn import create_denoise_model
+from ultralytics.data.filter.SRM_fn import denoise
 
 class BaseModel(nn.Module):
     """The BaseModel class serves as a base class for all the models in the Ultralytics YOLO family."""
@@ -125,6 +127,13 @@ class BaseModel(nn.Module):
         Returns:
             (torch.Tensor): The last output of the model.
         """
+        is_all_zero = torch.all(x == 0)
+        if not is_all_zero:
+            slices = torch.unbind(x, dim=0)
+            transformed_slices = [self.denoiseFn(slice_tensor.unsqueeze(0)).squeeze(0) for slice_tensor in slices]
+            stacked_slices = torch.stack(transformed_slices)
+            x = stacked_slices
+     
         if augment:
             return self._predict_augment(x)
         return self._predict_once(x, profile, visualize, embed)
@@ -165,6 +174,10 @@ class BaseModel(nn.Module):
             f"Reverting to single-scale prediction."
         )
         return self._predict_once(x)
+    
+    def denoiseFn(self, x):
+        # add denoise function
+        return denoise(x,self.denoise_model)
 
     def _profile_one_layer(self, m, x, dt):
         """
@@ -299,10 +312,10 @@ class BaseModel(nn.Module):
 
 class DetectionModel(BaseModel):
     """YOLOv8 detection model."""
-
     def __init__(self, cfg="yolov8n.yaml", ch=3, nc=None, verbose=True):  # model, input channels, number of classes
         """Initialize the YOLOv8 detection model with the given config and parameters."""
         super().__init__()
+        self.denoise_model = create_denoise_model()
         self.yaml = cfg if isinstance(cfg, dict) else yaml_model_load(cfg)  # cfg dict
         if self.yaml["backbone"][0][2] == "Silence":
             LOGGER.warning(
@@ -310,13 +323,14 @@ class DetectionModel(BaseModel):
                 "Please delete local *.pt file and re-download the latest model checkpoint."
             )
             self.yaml["backbone"][0][2] = "nn.Identity"
-
         # Define model
         ch = self.yaml["ch"] = self.yaml.get("ch", ch)  # input channels
         if nc and nc != self.yaml["nc"]:
             LOGGER.info(f"Overriding model.yaml nc={self.yaml['nc']} with nc={nc}")
             self.yaml["nc"] = nc  # override YAML value
+       
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=ch, verbose=verbose)  # model, savelist
+    
         self.names = {i: f"{i}" for i in range(self.yaml["nc"])}  # default names dict
         self.inplace = self.yaml.get("inplace", True)
         self.end2end = getattr(self.model[-1], "end2end", False)
@@ -339,11 +353,12 @@ class DetectionModel(BaseModel):
         else:
             self.stride = torch.Tensor([32])  # default stride for i.e. RTDETR
 
-        # Init weights, biases
-        initialize_weights(self)
-        if verbose:
-            self.info()
-            LOGGER.info("")
+        # # Init weights, biases
+        # initialize_weights(self)
+        # if verbose:
+        #     self.info()
+        #     LOGGER.info("")
+    
 
     def _predict_augment(self, x):
         """Perform augmentations on input image x and return augmented inference and train outputs."""
@@ -1062,6 +1077,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = ch[f[-1]]
         else:
             c2 = ch[f]
+        
 
         m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
         t = str(m)[8:-2].replace("__main__.", "")  # module type

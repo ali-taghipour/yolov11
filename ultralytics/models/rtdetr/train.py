@@ -70,6 +70,7 @@ class RTDETRTrainer(DetectionTrainer):
             cache=self.args.cache or None,
             prefix=colorstr(f"{mode}: "),
             data=self.data,
+            
         )
 
     def get_validator(self):

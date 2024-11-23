@@ -4,6 +4,7 @@ import glob
 import math
 import os
 import random
+import sys
 from copy import deepcopy
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
@@ -77,6 +78,7 @@ class BaseDataset(Dataset):
         self.rect = rect
         self.batch_size = batch_size
         self.stride = stride
+        self.denoise_model = None
         self.pad = pad
         if self.rect:
             assert self.batch_size is not None
@@ -102,6 +104,7 @@ class BaseDataset(Dataset):
 
         # Transforms
         self.transforms = self.build_transforms(hyp=hyp)
+        
 
     def get_img_files(self, img_path):
         """Read image files."""
